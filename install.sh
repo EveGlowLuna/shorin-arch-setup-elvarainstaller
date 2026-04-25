@@ -47,8 +47,8 @@ detect_chroot
 # ==============================================================================
 # 读取配置文件
 # ==============================================================================
-echo "[$(date '+%H:%M:%S')] INFO: Reading configuration from /tmp/setup-config.json"
-read_config "/tmp/setup-config.json"
+echo "[$(date '+%H:%M:%S')] INFO: Reading configuration from /root/setup-config.json"
+read_config "/root/setup-config.json"
 
 # ==============================================================================
 # 自动检测用户

@@ -3,11 +3,11 @@
 
 ## 概述
 
-本文档描述了 Shorin Arch Setup 自动化安装脚本的配置文件格式。脚本会自动从 `/tmp/setup-config.json` 读取配置并执行安装，无需任何用户交互。
+本文档描述了 Shorin Arch Setup 自动化安装脚本的配置文件格式。脚本会自动从 `/root/setup-config.json` 读取配置并执行安装，无需任何用户交互。
 
 ## 配置文件位置
 
-配置文件必须位于：`/tmp/setup-config.json`
+配置文件必须位于：`/root/setup-config.json`
 
 ## 配置文件格式
 
@@ -149,7 +149,7 @@
 
 ```bash
 # 创建配置文件
-cat > /tmp/setup-config.json << EOF
+cat > /root/setup-config.json << EOF
 {
   "desktop_env": "kde",
   "optional_modules": ["gpu", "apps"],
@@ -165,7 +165,7 @@ bash /path/to/install.sh
 
 ```bash
 # 创建配置文件
-cat > /tmp/setup-config.json << EOF
+cat > /root/setup-config.json << EOF
 {
   "desktop_env": "shorinniri",
   "optional_modules": ["gpu", "grub", "apps"],
@@ -224,7 +224,7 @@ bash /path/to/install.sh
 
 ## 注意事项
 
-1. **配置文件必须存在**：若 `/tmp/setup-config.json` 不存在，脚本将报错退出
+1. **配置文件必须存在**：若 `/root/setup-config.json` 不存在，脚本将报错退出
 2. **用户必须存在**：`/home/` 目录下必须有且仅有一个用户
 3. **需要root权限**：脚本必须以root身份运行
 4. **网络连接**：安装过程需要网络连接
