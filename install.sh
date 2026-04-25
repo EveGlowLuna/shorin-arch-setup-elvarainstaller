@@ -120,7 +120,7 @@ ALL_MODULES=("${MANDATORY_MODULES[@]}")
 
 # 添加可选模块
 for module_name in "${OPTIONAL_MODULES[@]}"; do
-    local script_name=$(map_module "$module_name")
+    script_name=$(map_module "$module_name")
     if [ -n "$script_name" ]; then
         ALL_MODULES+=("$script_name")
         echo "[$(date '+%H:%M:%S')] INFO: Adding optional module: $module_name -> $script_name"
