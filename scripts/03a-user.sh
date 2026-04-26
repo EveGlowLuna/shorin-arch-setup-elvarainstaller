@@ -129,7 +129,7 @@ section "Step 4/4" "Environment Setup"
 LOCAL_BIN_PATH="$REAL_HOME/.local/bin"
 log "Setting up user executable path: $LOCAL_BIN_PATH"
 
-if exe runuser -u "$TARGET_USER" -- mkdir -p "$LOCAL_BIN_PATH"; then
+if mkdir -p "$LOCAL_BIN_PATH" && chown "$TARGET_USER:" "$LOCAL_BIN_PATH"; then
     success "Directory ready."
 else
     error "Failed to create ~/.local/bin"

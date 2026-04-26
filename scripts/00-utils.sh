@@ -117,6 +117,28 @@ write_log() {
     echo "[$(date '+%H:%M:%S')] [$1] $clean_msg" >> "$TEMP_LOG_FILE"
 }
 
+# --- 视觉组件 ---
+
+hr() {
+    echo "[$(date '+%H:%M:%S')] ────────────────────────────────────────────────────────────────────────────────"
+}
+
+section() {
+    local title="$1"
+    local subtitle="$2"
+    echo ""
+    echo "[$(date '+%H:%M:%S')] === $title: $subtitle ==="
+    write_log "SECTION" "$title - $subtitle"
+}
+
+info_kv() {
+    local key="$1"
+    local val="$2"
+    local extra="$3"
+    echo "[$(date '+%H:%M:%S')] INFO: $key = $val $extra"
+    write_log "INFO" "$key=$val"
+}
+
 log() {
     echo "[$(date '+%H:%M:%S')] INFO: $1"
     write_log "LOG" "$1"
@@ -140,13 +162,13 @@ error() {
 # --- 命令执行器 ---
 exe() {
     local full_command="$*"
-    
+
     echo "[$(date '+%H:%M:%S')] EXEC: $full_command"
     write_log "EXEC" "$full_command"
-    
+
     "$@"
     local status=$?
-    
+
     if [ $status -eq 0 ]; then
         echo "[$(date '+%H:%M:%S')] OK: Command succeeded"
     else
