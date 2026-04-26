@@ -26,7 +26,7 @@ detect_target_user() {
     local users=()
     while IFS= read -r line; do
         users+=("$line")
-    done < <(ls -la /home/ 2>/dev/null | grep -E '^d' | awk '{print $9}' | grep -v '^\.' | grep -v '^lost\+found$')
+    done < <(find /home -maxdepth 1 -mindepth 1 -type d ! -name '.*' ! -name 'lost+found' -printf '%f\n' 2>/dev/null)
     
     if [ ${#users[@]} -eq 1 ]; then
         TARGET_USER="${users[0]}"
