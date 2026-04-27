@@ -35,7 +35,13 @@ log "DM Check result $SKIP_DM"
 log "Granting temporary sudo privileges..."
 SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
 echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
+exe chmod 440 "$SUDO_TEMP_FILE"
+
+log "Validating NOPASSWD sudo for $TARGET_USER..."
+if ! runuser -u "$TARGET_USER" -- sudo -n true 2>/dev/null; then
+    critical_failure_handler "NOPASSWD sudo validation failed. Check /etc/sudoers.d/ file permissions and @includedir directive."
+fi
+log "NOPASSWD sudo validated successfully."
 
 cleanup_sudo() {
     if [[ -f "$SUDO_TEMP_FILE" ]]; then
