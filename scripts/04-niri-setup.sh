@@ -43,14 +43,15 @@ as_user shorinniri init
 echo "[$(date '+%H:%M:%S')] INFO: Step 2/3 - Static Resources"
 
 echo "[$(date '+%H:%M:%S')] INFO: Deploying wallpapers..."
-WALLPAPER_SOURCE_DIR="$PARENT_DIR/resources/Wallpapers"
 WALLPAPER_DIR="$HOME_DIR/Pictures/Wallpapers"
-if [ -d "$WALLPAPER_SOURCE_DIR" ]; then
-    as_user mkdir -p "$WALLPAPER_DIR"
-    cp -rf "$WALLPAPER_SOURCE_DIR/." "$WALLPAPER_DIR/"
-    chown -R "$TARGET_USER:" "$WALLPAPER_DIR"
-    echo "[$(date '+%H:%M:%S')] OK: Wallpapers deployed"
+as_user mkdir -p "$WALLPAPER_DIR"
+if [ -d "/usr/share/backgrounds/gnome" ]; then
+    cp -rf "/usr/share/backgrounds/gnome/." "$WALLPAPER_DIR/"
+elif [ -d "/usr/share/backgrounds" ]; then
+    cp -rf "/usr/share/backgrounds/." "$WALLPAPER_DIR/"
 fi
+chown -R "$TARGET_USER:" "$WALLPAPER_DIR"
+echo "[$(date '+%H:%M:%S')] OK: Wallpapers deployed"
 
 # --- Step 3: 清理和引导配置 ---
 echo "[$(date '+%H:%M:%S')] INFO: Step 3/3 - Cleanup & Boot Configuration"
