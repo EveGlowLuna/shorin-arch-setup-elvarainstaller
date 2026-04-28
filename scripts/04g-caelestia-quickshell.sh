@@ -32,18 +32,8 @@ check_dm_conflict
 #  3. Temporary Sudo Access
 # ==============================================================================
 # Grant passwordless sudo temporarily for the installer to run smoothly
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" >"$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
-log "Privilege escalation: Temporary passwordless sudo enabled."
-
-cleanup_sudo() {
-    if [ -f "$SUDO_TEMP_FILE" ]; then
-        rm -f "$SUDO_TEMP_FILE"
-        log "Security: Temporary sudo privileges revoked."
-    fi
-}
-trap cleanup_sudo EXIT INT TERM
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
 # ==============================================================================
 #  4. Installation (Caelestia)

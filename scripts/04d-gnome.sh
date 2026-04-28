@@ -38,19 +38,8 @@ check_dm_conflict
 # ==================================
 # temp sudo without passwd
 # ==================================
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" >"$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
-log "Temp sudo file created..."
-
-cleanup_sudo() {
-    if [ -f "$SUDO_TEMP_FILE" ]; then
-        rm -f "$SUDO_TEMP_FILE"
-        log "Security: Temporary sudo privileges revoked."
-    fi
-}
-
-trap cleanup_sudo EXIT INT TERM
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
 #=================================================
 # Step 1: Install base pkgs

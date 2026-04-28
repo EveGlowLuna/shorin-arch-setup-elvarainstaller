@@ -50,9 +50,8 @@ pacman -S --noconfirm --needed $FLATPAK_PKGS
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 # --- 设置临时sudo权限 ---
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
 # --- Step 3: 安装依赖 ---
 echo "[$(date '+%H:%M:%S')] INFO: Step 3/5 - KDE Dependencies"
@@ -153,5 +152,5 @@ else
 fi
 
 # --- 清理 ---
-rm -f "$SUDO_TEMP_FILE"
+revoke_nopasswd_sudo "$TARGET_USER"
 echo "[$(date '+%H:%M:%S')] OK: Module 06 completed"

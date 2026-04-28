@@ -21,14 +21,8 @@ echo "[$(date '+%H:%M:%S')] INFO: Niri Desktop Setup"
 echo "[$(date '+%H:%M:%S')] INFO: ==============================================="
 
 # --- 设置临时sudo权限 ---
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" >"$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
-
-cleanup_sudo() { 
-    rm -f "$SUDO_TEMP_FILE" 
-}
-trap cleanup_sudo EXIT INT TERM
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
 # --- Step 1: 安装Meta包 ---
 echo "[$(date '+%H:%M:%S')] INFO: Step 1/3 - Install Environment & Dotfiles"
@@ -84,5 +78,5 @@ else
     echo "[$(date '+%H:%M:%S')] OK: ly display manager configured"
 fi
 
-rm -f "$SUDO_TEMP_FILE"
+revoke_nopasswd_sudo "$TARGET_USER"
 echo "[$(date '+%H:%M:%S')] OK: Module 04 completed successfully. Shorin Niri is ready!"

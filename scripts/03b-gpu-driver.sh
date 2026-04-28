@@ -172,20 +172,9 @@ DETECTED_USER=$(awk -F: '$3 == 1000 {print $1}' /etc/passwd)
 TARGET_USER="${DETECTED_USER:-$(read -p "Target user: " u && echo $u)}"
 
 #--------------sudo temp file--------------------#
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" >"$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
-log "Temp sudo file created..."
-
-# 定义清理函数：无论脚本是成功结束还是意外中断(Ctrl+C)，都确保删除免密文件
-cleanup_sudo() {
-    if [ -f "$SUDO_TEMP_FILE" ]; then
-        rm -f "$SUDO_TEMP_FILE"
-        log "Security: Temporary sudo privileges revoked."
-    fi
-}
-# 注册陷阱：在脚本退出(EXIT)或被中断(INT/TERM)时触发清理
-trap cleanup_sudo EXIT INT TERM
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
+log "Temp sudo granted..."
 
 if [ ${#PKGS[@]} -gt 0 ]; then
     # 数组去重

@@ -79,9 +79,8 @@ echo "[$(date '+%H:%M:%S')] INFO: Scheduled - Repo: ${#REPO_APPS[@]}, AUR: ${#AU
 
 # --- 设置临时sudo权限 ---
 if [ ${#REPO_APPS[@]} -gt 0 ] || [ ${#AUR_APPS[@]} -gt 0 ]; then
-    SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_apps"
-    echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDO_TEMP_FILE"
-    chmod 440 "$SUDO_TEMP_FILE"
+    grant_nopasswd_sudo "$TARGET_USER"
+    trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
     echo "[$(date '+%H:%M:%S')] INFO: Temporary NOPASSWD configured"
 fi
 
@@ -255,10 +254,7 @@ if [ "$INSTALL_LAZYVIM" = true ]; then
 fi
 
 # --- 清理临时sudo权限 ---
-if [ -f "$SUDO_TEMP_FILE" ]; then
-    rm -f "$SUDO_TEMP_FILE"
-    echo "[$(date '+%H:%M:%S')] INFO: Temporary NOPASSWD revoked"
-fi
+revoke_nopasswd_sudo "$TARGET_USER"
 
 # --- 生成失败报告 ---
 if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then

@@ -187,6 +187,24 @@ as_user() {
     runuser -u "$TARGET_USER" -- "$@"
 }
 
+# --- 临时 NOPASSWD sudo（直接写入 /etc/sudoers，绕过 sudoers.d include 问题）---
+# 用法：grant_nopasswd_sudo <user>   revoke_nopasswd_sudo <user>
+_SUDO_MARKER="# SHORIN_INSTALLER_NOPASSWD"
+grant_nopasswd_sudo() {
+    local user="${1:-$TARGET_USER}"
+    # 避免重复写入
+    if ! grep -qF "$_SUDO_MARKER:$user" /etc/sudoers; then
+        echo "$_SUDO_MARKER:$user" >> /etc/sudoers
+        echo "$user ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+        log "NOPASSWD sudo granted for $user"
+    fi
+}
+revoke_nopasswd_sudo() {
+    local user="${1:-$TARGET_USER}"
+    sed -i "/$_SUDO_MARKER:$user/d;/^$user ALL=(ALL:ALL) NOPASSWD: ALL$/d" /etc/sudoers
+    log "NOPASSWD sudo revoked for $user"
+}
+
 force_copy() {
     local src="$1"
     local target_dir="$2"

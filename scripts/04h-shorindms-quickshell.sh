@@ -31,34 +31,18 @@ fi
 info_kv "Target User" "$TARGET_USER"
 check_dm_conflict
 log "DM Check result $SKIP_DM"
-# --- Temporary Sudo Privileges ---
-log "Granting temporary sudo privileges..."
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDO_TEMP_FILE"
-exe chmod 440 "$SUDO_TEMP_FILE"
-
-log "Validating NOPASSWD sudo for $TARGET_USER..."
-if ! runuser -u "$TARGET_USER" -- sudo -n true 2>/dev/null; then
-    critical_failure_handler "NOPASSWD sudo validation failed. Check /etc/sudoers.d/ file permissions and @includedir directive."
-fi
-log "NOPASSWD sudo validated successfully."
-
-cleanup_sudo() {
-    if [[ -f "$SUDO_TEMP_FILE" ]]; then
-        rm -f "$SUDO_TEMP_FILE"
-        log "Security: Temporary sudo privileges revoked."
-    fi
-}
-trap cleanup_sudo EXIT INT TERM
-
 critical_failure_handler() {
     local failed_reason="$1"
     trap - ERR
     echo -e "\n\033[0;31m[CRITICAL FAILURE] $failed_reason\033[0m\n"
-    # 这里省略了你原有的报错大框框，保持原有逻辑即可
     exit 1
 }
 trap 'critical_failure_handler "Script Error at Line $LINENO"' ERR
+
+# --- Temporary Sudo Privileges ---
+log "Granting temporary sudo privileges..."
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
 AUR_HELPER="paru"
 
