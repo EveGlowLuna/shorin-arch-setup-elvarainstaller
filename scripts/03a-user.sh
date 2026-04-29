@@ -51,7 +51,7 @@ if [ "$SKIP_CREATION" = true ]; then
 else
     log "Creating new user '${TARGET_USER}'..."
     # 使用 -m 创建家目录，-g wheel 加入特权组
-    exe useradd -m -G wheel -s /bin/bash "$TARGET_USER"
+    exe useradd -m -G wheel -s /usr/bin/fish "$TARGET_USER"
     
     log "Setting password for ${TARGET_USER}..."
     echo -e "   ${H_GRAY}--------------------------------------------------${NC}"
