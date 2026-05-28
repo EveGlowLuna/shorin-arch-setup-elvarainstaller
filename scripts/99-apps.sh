@@ -7,16 +7,18 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# 直接读取用户信息，不依赖工具函数库中的detect_target_user
-DETECTED_USER=$(awk -F: '$3 == 1000 {print $1}' /etc/passwd)
-TARGET_USER="${DETECTED_USER}"
-HOME_DIR="/home/$TARGET_USER"
+if [ -f "$SCRIPT_DIR/00-utils.sh" ]; then
+    source "$SCRIPT_DIR/00-utils.sh"
+else
+    echo "Error: 00-utils.sh not found."
+    exit 1
+fi
 
-echo "[$(date '+%H:%M:%S')] INFO: Target user: $TARGET_USER"
+check_root
 
-as_user() {
-    runuser -u "$TARGET_USER" -- "$@"
-}
+# 读取用户信息
+detect_target_user
+log "Target user: $TARGET_USER"
 
 # ==============================================================================
 # 应用安装

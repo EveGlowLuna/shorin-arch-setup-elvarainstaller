@@ -88,6 +88,7 @@ read_config() {
     export MIRROR_MODE=$(get_json_field "$json_content" "mirror")
     export GRUB_THEME=$(get_json_field "$json_content" "grub_theme")
     export FLATPAK_MIRROR=$(get_json_field "$json_content" "flatpak_mirror")
+    export USER_PASSWORD=$(get_json_field "$json_content" "user_password")
     
     export OPTIONAL_MODULES=()
     local modules=$(get_json_array "$json_content" "optional_modules")
@@ -103,6 +104,8 @@ read_config() {
     fi
     
     echo "[$(date '+%H:%M:%S')] INFO: Loaded config - desktop_env: $DESKTOP_ENV, mirror: $MIRROR_MODE"
+    
+    setup_askpass
 }
 
 # ==============================================================================
@@ -184,10 +187,38 @@ exe_silent() {
 
 # --- 辅助函数 ---
 as_user() {
-    runuser -u "$TARGET_USER" -- "$@"
+    if [ -n "$SUDO_ASKPASS" ]; then
+        runuser -u "$TARGET_USER" -- env SUDO_ASKPASS="$SUDO_ASKPASS" "$@"
+    else
+        runuser -u "$TARGET_USER" -- "$@"
+    fi
+}
+
+# --- SUDO_ASKPASS 助手（解决 chroot 无终端下 yay 调用 sudo 的问题）---
+# 将密码写入仅 root 可读的文件，创建 askpass 脚本，导出 SUDO_ASKPASS
+setup_askpass() {
+    if [ -z "$USER_PASSWORD" ]; then
+        return
+    fi
+
+    local pass_file="/root/.install_password"
+    local askpass_script="/usr/local/bin/install-askpass.sh"
+
+    echo "$USER_PASSWORD" > "$pass_file"
+    chmod 600 "$pass_file"
+
+    cat > "$askpass_script" << 'ASKPASS_EOF'
+#!/bin/sh
+cat /root/.install_password
+ASKPASS_EOF
+    chmod 755 "$askpass_script"
+
+    export SUDO_ASKPASS="$askpass_script"
+    log "SUDO_ASKPASS configured at $askpass_script"
 }
 
 # --- 临时 NOPASSWD sudo（直接写入 /etc/sudoers，绕过 sudoers.d include 问题）---
+# 同时禁用 requiretty，确保 chroot 无终端环境也能正常工作
 # 用法：grant_nopasswd_sudo <user>   revoke_nopasswd_sudo <user>
 _SUDO_MARKER="# SHORIN_INSTALLER_NOPASSWD"
 grant_nopasswd_sudo() {
@@ -195,13 +226,14 @@ grant_nopasswd_sudo() {
     # 避免重复写入
     if ! grep -qF "$_SUDO_MARKER:$user" /etc/sudoers; then
         echo "$_SUDO_MARKER:$user" >> /etc/sudoers
+        echo "Defaults:$user !requiretty" >> /etc/sudoers
         echo "$user ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
         log "NOPASSWD sudo granted for $user"
     fi
 }
 revoke_nopasswd_sudo() {
     local user="${1:-$TARGET_USER}"
-    sed -i "/$_SUDO_MARKER:$user/d;/^$user ALL=(ALL:ALL) NOPASSWD: ALL$/d" /etc/sudoers
+    sed -i "/$_SUDO_MARKER:$user/d;/^Defaults:$user !requiretty$/d;/^$user ALL=(ALL:ALL) NOPASSWD: ALL$/d" /etc/sudoers
     log "NOPASSWD sudo revoked for $user"
 }
 

@@ -7,18 +7,21 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 
+if [ -f "$SCRIPT_DIR/00-utils.sh" ]; then
+    source "$SCRIPT_DIR/00-utils.sh"
+else
+    echo "Error: 00-utils.sh not found."
+    exit 1
+fi
+
+check_root
+
+log "==============================================="
+log "KDE Plasma Environment"
+log "==============================================="
+
 # 读取用户信息
-DETECTED_USER=$(awk -F: '$3 == 1000 {print $1}' /etc/passwd)
-TARGET_USER="${DETECTED_USER}"
-HOME_DIR="/home/$TARGET_USER"
-
-as_user() {
-    runuser -u "$TARGET_USER" -- "$@"
-}
-
-echo "[$(date '+%H:%M:%S')] INFO: ==============================================="
-echo "[$(date '+%H:%M:%S')] INFO: KDE Plasma Environment"
-echo "[$(date '+%H:%M:%S')] INFO: ==============================================="
+detect_target_user
 
 # --- 检测显示管理器冲突 ---
 SKIP_DM=false

@@ -374,4 +374,4 @@ run_hide_desktop_file
 
 
 log "Installation Complete! Please reboot."
-cleanup_sudo
+revoke_nopasswd_sudo "$TARGET_USER"
