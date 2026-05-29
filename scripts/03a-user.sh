@@ -51,7 +51,7 @@ if [ "$SKIP_CREATION" = true ]; then
 else
     log "Creating new user '${TARGET_USER}'..."
     # 使用 -m 创建家目录，-g wheel 加入特权组
-    exe useradd -m -G wheel -s /bin/bash "$TARGET_USER"
+    exe useradd -m -G wheel -s /usr/bin/fish "$TARGET_USER"
     
     log "Setting password for ${TARGET_USER}..."
     echo -e "   ${H_GRAY}--------------------------------------------------${NC}"
@@ -95,6 +95,27 @@ EOF
 exe chmod 440 "$SUDO_CONF_FILE"
 success "Rules installed to $SUDO_CONF_FILE"
 
+# C. 验证 @includedir 存在
+log "Verifying @includedir directive in /etc/sudoers..."
+if grep -q "^@includedir\s\+/etc/sudoers\.d\s*$" /etc/sudoers || grep -q "^#includedir\s\+/etc/sudoers\.d\s*$" /etc/sudoers; then
+    success "@includedir /etc/sudoers.d already present."
+else
+    log "Adding @includedir /etc/sudoers.d to /etc/sudoers..."
+    echo "" >> /etc/sudoers
+    echo "@includedir /etc/sudoers.d" >> /etc/sudoers
+    success "@includedir directive added."
+fi
+
+# D. 修复 sudoers.d 下所有文件的权限和所有权
+log "Fixing permissions on all files in /etc/sudoers.d/..."
+for f in /etc/sudoers.d/*; do
+    if [ -f "$f" ]; then
+        chown root:root "$f"
+        chmod 440 "$f"
+    fi
+done
+success "Sudoers permissions verified."
+
 # 2. 配置 Faillock (防止输错密码锁定)
 log "Configuring password lockout policy (faillock)..."
 FAILLOCK_CONF="/etc/security/faillock.conf"
@@ -129,7 +150,7 @@ section "Step 4/4" "Environment Setup"
 LOCAL_BIN_PATH="$REAL_HOME/.local/bin"
 log "Setting up user executable path: $LOCAL_BIN_PATH"
 
-if exe runuser -u "$TARGET_USER" -- mkdir -p "$LOCAL_BIN_PATH"; then
+if mkdir -p "$LOCAL_BIN_PATH" && chown "$TARGET_USER:" "$LOCAL_BIN_PATH"; then
     success "Directory ready."
 else
     error "Failed to create ~/.local/bin"

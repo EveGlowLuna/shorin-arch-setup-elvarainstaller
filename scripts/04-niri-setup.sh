@@ -1,39 +1,34 @@
 #!/bin/bash
 
 # ==============================================================================
-# 04-niri-setup.sh - Niri Desktop (Refactored & Pre-Verify)
+# 04-niri-setup.sh - Niri Desktop (Automated Version)
 # ==============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 
-source "$SCRIPT_DIR/00-utils.sh"
-VERIFY_LIST="/tmp/shorin_install_verify.list"
-rm -f "$VERIFY_LIST"
+if [ -f "$SCRIPT_DIR/00-utils.sh" ]; then
+    source "$SCRIPT_DIR/00-utils.sh"
+else
+    echo "Error: 00-utils.sh not found."
+    exit 1
+fi
 
 check_root
+
+log "==============================================="
+log "Niri Desktop Setup"
+log "==============================================="
+
+# 读取用户信息
 detect_target_user
-check_dm_conflict
 
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" >"$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
+# --- 设置临时sudo权限 ---
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
-cleanup_sudo() { rm -f "$SUDO_TEMP_FILE"; }
-trap cleanup_sudo EXIT INT TERM
-
-critical_failure_handler() {
-    local failed_reason="$1"
-    trap - ERR
-    echo -e "\n\033[0;31m[CRITICAL FAILURE] $failed_reason\033[0m\n"
-    exit 1
-}
-trap 'critical_failure_handler "Script Error at Line $LINENO"' ERR
-
-# ==============================================================================
-# STEP 1: Install Meta Package & Initialize Environment
-# ==============================================================================
-section "Step 1/3" "Install Environment & Dotfiles"
+# --- Step 1: 安装Meta包 ---
+echo "[$(date '+%H:%M:%S')] INFO: Step 1/3 - Install Environment & Dotfiles"
 
 AUR_HELPER="paru"
 CORE_PKG="shorin-niri-git"
@@ -49,56 +44,54 @@ fi
 
 
 
-# --- 在安装发生【之前】动态提取依赖写入 VERIFY_LIST ---
-log "Fetching dependency list from AUR for verification..."
-echo "$CORE_PKG" >> "$VERIFY_LIST"
-
-if as_user "$AUR_HELPER" -Si "$CORE_PKG" &>/dev/null; then
-    as_user "$AUR_HELPER" -Si "$CORE_PKG" | grep "^Depends On" | cut -d':' -f2- | tr -s ' ' '\n' | sed -e 's/[<>=].*//g' -e '/^$/d' -e '/None/d' >> "$VERIFY_LIST"
-    log "Dependencies added to $VERIFY_LIST."
-else
-    warn "Could not fetch remote dependency info for $CORE_PKG. Skipping verify list append."
-fi
-# --------------------------------------------------------
-
-# 1. 委托 AUR 助手安装大包
-log "Installing $CORE_PKG and all its dependencies via AUR..."
+echo "[$(date '+%H:%M:%S')] INFO: Installing $CORE_PKG via AUR..."
 if ! as_user "$AUR_HELPER" -S --noconfirm --needed "$CORE_PKG"; then
-    critical_failure_handler "Failed to install '$CORE_PKG' from AUR."
+    echo "[$(date '+%H:%M:%S')] ERROR: Failed to install '$CORE_PKG' from AUR"
+    exit 1
 fi
 
-# 2. 调用 CLI 脚本完成初始化
-log "Running shorinniri initialization..."
-exe as_user shorinniri init
+echo "[$(date '+%H:%M:%S')] INFO: Running shorinniri initialization..."
+as_user shorinniri init
 
-# ==============================================================================
-# STEP 2: Deploy Static Resources
-# ==============================================================================
-section "Step 2/3" "Static Resources"
+# --- Step 2: 部署静态资源 ---
+echo "[$(date '+%H:%M:%S')] INFO: Step 2/3 - Static Resources"
 
-log "Deploying wallpapers..."
-WALLPAPER_SOURCE_DIR="$PARENT_DIR/resources/Wallpapers"
+echo "[$(date '+%H:%M:%S')] INFO: Deploying wallpapers..."
 WALLPAPER_DIR="$HOME_DIR/Pictures/Wallpapers"
-if [ -d "$WALLPAPER_SOURCE_DIR" ]; then
-    as_user mkdir -p "$WALLPAPER_DIR"
-    force_copy "$WALLPAPER_SOURCE_DIR/." "$WALLPAPER_DIR/"
-    chown -R "$TARGET_USER:" "$WALLPAPER_DIR"
+as_user mkdir -p "$WALLPAPER_DIR"
+if [ -d "/usr/share/backgrounds/gnome" ]; then
+    cp -rf "/usr/share/backgrounds/gnome/." "$WALLPAPER_DIR/"
+elif [ -d "/usr/share/backgrounds" ]; then
+    cp -rf "/usr/share/backgrounds/." "$WALLPAPER_DIR/"
 fi
+chown -R "$TARGET_USER:" "$WALLPAPER_DIR"
+echo "[$(date '+%H:%M:%S')] OK: Wallpapers deployed"
 
-# ==============================================================================
-# STEP 3: Display Manager & Cleanup
-# ==============================================================================
-section "Step 3/3" "Cleanup & Boot Configuration"
+# --- Step 3: 清理和引导配置 ---
+echo "[$(date '+%H:%M:%S')] INFO: Step 3/3 - Cleanup & Boot Configuration"
 
+echo "[$(date '+%H:%M:%S')] INFO: Cleaning up legacy TTY autologin configs..."
 
+# 检测显示管理器冲突
+SKIP_DM=false
+KNOWN_DMS=("lemurs" "ly" "gdm" "lightdm" "lxdm" "plasma-login-manager" "sddm" "greetd")
 
-log "Cleaning up legacy TTY autologin configs..."
+for dm in "${KNOWN_DMS[@]}"; do
+    if pacman -Q "$dm" &>/dev/null; then
+        SKIP_DM=true
+        echo "[$(date '+%H:%M:%S')] INFO: Display manager conflict detected: $dm"
+        break
+    fi
+done
 
 if [ "$SKIP_DM" = true ]; then
-    warn "You will need to start your session manually from the TTY."
+    echo "[$(date '+%H:%M:%S')] WARN: Display manager setup skipped due to conflict"
 else
-    setup_ly
+    echo "[$(date '+%H:%M:%S')] INFO: Installing ly display manager..."
+    pacman -S --noconfirm --needed ly
+    systemctl enable ly@tty1
+    echo "[$(date '+%H:%M:%S')] OK: ly display manager configured"
 fi
-rm -f "$SUDO_TEMP_FILE"
-trap - ERR
-success "Module 04 completed successfully. Shorin Niri is ready!"
+
+revoke_nopasswd_sudo "$TARGET_USER"
+echo "[$(date '+%H:%M:%S')] OK: Module 04 completed successfully. Shorin Niri is ready!"

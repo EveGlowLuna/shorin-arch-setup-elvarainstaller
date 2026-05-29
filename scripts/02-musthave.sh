@@ -155,7 +155,7 @@ if [ "$BT_FOUND" = true ]; then
     log "Installing Bluez "
     exe pacman -S --noconfirm --needed bluez bluetui
     
-    exe systemctl enable --now bluetooth
+    exe systemctl enable bluetooth
     success "Bluetooth service enabled."
 else
     info_kv "Hardware" "Not Found"
@@ -168,7 +168,7 @@ fi
 section "Step 6/8" "Power Management"
 
 exe pacman -S --noconfirm --needed power-profiles-daemon
-exe systemctl enable --now power-profiles-daemon
+exe systemctl enable power-profiles-daemon
 success "Power profiles daemon enabled."
 
 # ------------------------------------------------------------------------------

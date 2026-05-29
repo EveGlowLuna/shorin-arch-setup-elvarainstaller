@@ -33,17 +33,8 @@ check_dm_conflict
 
 # --- Temporary Sudo Privileges ---
 log "Granting temporary sudo privileges..."
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
-
-cleanup_sudo() {
-    if [[ -f "$SUDO_TEMP_FILE" ]]; then
-        rm -f "$SUDO_TEMP_FILE"
-        log "Security: Temporary sudo privileges revoked."
-    fi
-}
-trap cleanup_sudo EXIT INT TERM
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
 # ========================================================================
 #   exec
@@ -136,11 +127,14 @@ force_copy "$PARENT_DIR/shorin-dms-hyprniri-dotfiles/dotfiles/." "$HOME_DIR"
 as_user shorin link
 
 log "Deploying wallpapers..."
-WALLPAPER_SOURCE_DIR="$PARENT_DIR/resources/Wallpapers"
 WALLPAPER_DIR="$HOME_DIR/Pictures/Wallpapers"
-chown -R "$TARGET_USER:" "$WALLPAPER_SOURCE_DIR"
 as_user mkdir -p "$WALLPAPER_DIR"
-force_copy "$WALLPAPER_SOURCE_DIR/." "$WALLPAPER_DIR/"
+if [ -d "/usr/share/backgrounds/gnome" ]; then
+    force_copy "/usr/share/backgrounds/gnome/." "$WALLPAPER_DIR/"
+elif [ -d "/usr/share/backgrounds" ]; then
+    force_copy "/usr/share/backgrounds/." "$WALLPAPER_DIR/"
+fi
+chown -R "$TARGET_USER:" "$WALLPAPER_DIR"
 
 # --- Browser Setup ---
 section "Shorin Hyprniri" "Browser Setup"

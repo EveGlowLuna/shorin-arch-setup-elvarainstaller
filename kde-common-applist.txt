@@ -23,8 +23,6 @@ lutris                                   # Open Source Gaming Platform (Wine/Pro
 steam                                    # Gaming Platform (Valve)
 
 # --- AUR Packages (Social) ---
-AUR:linuxqq-appimage                     # Tencent QQ (AppImage)
-AUR:wechat-appimage                      # WeChat (AppImage)
 AUR:ttf-jetbrains-maple-mono-nf-xx-xx    # Maple Mono NF font
 
 # --- Flatpak Packages (Productivity & Media) ---

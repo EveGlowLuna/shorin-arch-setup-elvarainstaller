@@ -31,28 +31,18 @@ fi
 info_kv "Target User" "$TARGET_USER"
 check_dm_conflict
 log "DM Check result $SKIP_DM"
-# --- Temporary Sudo Privileges ---
-log "Granting temporary sudo privileges..."
-SUDO_TEMP_FILE="/etc/sudoers.d/99_shorin_installer_temp"
-echo "$TARGET_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDO_TEMP_FILE"
-chmod 440 "$SUDO_TEMP_FILE"
-
-cleanup_sudo() {
-    if [[ -f "$SUDO_TEMP_FILE" ]]; then
-        rm -f "$SUDO_TEMP_FILE"
-        log "Security: Temporary sudo privileges revoked."
-    fi
-}
-trap cleanup_sudo EXIT INT TERM
-
 critical_failure_handler() {
     local failed_reason="$1"
     trap - ERR
     echo -e "\n\033[0;31m[CRITICAL FAILURE] $failed_reason\033[0m\n"
-    # 这里省略了你原有的报错大框框，保持原有逻辑即可
     exit 1
 }
 trap 'critical_failure_handler "Script Error at Line $LINENO"' ERR
+
+# --- Temporary Sudo Privileges ---
+log "Granting temporary sudo privileges..."
+grant_nopasswd_sudo "$TARGET_USER"
+trap 'revoke_nopasswd_sudo "$TARGET_USER"' EXIT INT TERM
 
 AUR_HELPER="paru"
 
@@ -104,13 +94,14 @@ exe as_user shorindms init
 section "Shorin DMS" "Wallpapers & Tutorials"
 
 log "Deploying wallpapers..."
-WALLPAPER_SOURCE_DIR="$PARENT_DIR/resources/Wallpapers"
 WALLPAPER_DIR="$HOME_DIR/Pictures/Wallpapers"
-if [ -d "$WALLPAPER_SOURCE_DIR" ]; then
-    as_user mkdir -p "$WALLPAPER_DIR"
-    force_copy "$WALLPAPER_SOURCE_DIR/." "$WALLPAPER_DIR/"
-    chown -R "$TARGET_USER:" "$WALLPAPER_DIR"
+as_user mkdir -p "$WALLPAPER_DIR"
+if [ -d "/usr/share/backgrounds/gnome" ]; then
+    force_copy "/usr/share/backgrounds/gnome/." "$WALLPAPER_DIR/"
+elif [ -d "/usr/share/backgrounds" ]; then
+    force_copy "/usr/share/backgrounds/." "$WALLPAPER_DIR/"
 fi
+chown -R "$TARGET_USER:" "$WALLPAPER_DIR"
 
 # ==============================================================================
 # Finalization & Auto-Login
