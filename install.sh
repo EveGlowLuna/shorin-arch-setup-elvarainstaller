@@ -42,8 +42,6 @@ detect_chroot() {
         export IN_CHROOT=false
     fi
 }
-    fi
-}
 detect_chroot
 
 # ==============================================================================
